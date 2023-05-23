@@ -5,8 +5,83 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:RG_PZ2"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="600" Width="900" MinHeight="600" MinWidth="900">
     <Grid>
-        
+        <Grid.RowDefinitions>
+            <RowDefinition Height="40" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel
+            Grid.Row="0"
+            Orientation="Horizontal"
+            Margin="10,0,0,0">
+
+            <StackPanel VerticalAlignment="Center">
+                <Button
+                    x:Name="resetViewportButton"
+                    Content="Reset Viewport"
+                    Padding="3"
+                    Click="resetViewportButton_Click"/>
+            </StackPanel>
+
+        </StackPanel>
+
+        <Viewport3D
+            x:Name="_mainViewport"
+            ClipToBounds="True"
+            Grid.Row="1"
+            MouseDown="mainViewport_MouseDown"
+            MouseUp="mainViewport_MouseUp"
+            MouseMove="mainViewport_MouseMove"
+            MouseWheel="mainViewport_MouseWheel">
+            <Viewport3D.Camera>
+                <PerspectiveCamera Position="0,0,2" LookDirection="0,0,-2" />
+            </Viewport3D.Camera>
+            <ModelVisual3D>
+                <ModelVisual3D.Content>
+                    <AmbientLight />
+                </ModelVisual3D.Content>
+            </ModelVisual3D>
+            <ModelVisual3D>
+                <ModelVisual3D.Content>
+                    <Model3DGroup x:Name="_modelGroup">
+                        <GeometryModel3D>
+                            <GeometryModel3D.Geometry>
+                                <MeshGeometry3D
+                                    Positions="-1.5,-1,0 1.5,-1,0 1.5,1,0 -1.5,1,0"
+                                    TextureCoordinates="0,1 1,1 1,0 0,0"
+                                    TriangleIndices="0 1 2 0 2 3" />
+                            </GeometryModel3D.Geometry>
+                            <GeometryModel3D.Material>
+                                <DiffuseMaterial>
+                                    <DiffuseMaterial.Brush>
+                                        <ImageBrush ImageSource="Images/map.jpg" />
+                                    </DiffuseMaterial.Brush>
+                                </DiffuseMaterial>
+                            </GeometryModel3D.Material>
+                        </GeometryModel3D>
+
+                        <Model3DGroup.Transform>
+                            <Transform3DGroup>
+                                <TranslateTransform3D
+                                    x:Name="_translateTransform"
+                                    OffsetX="0" OffsetY="0" OffsetZ="0" />
+                                <ScaleTransform3D
+                                    x:Name="_scaleTransform"
+                                    ScaleX="1" ScaleY="1" ScaleZ="1" />
+                                <RotateTransform3D>
+                                    <RotateTransform3D.Rotation>
+                                        <AxisAngleRotation3D
+                                            x:Name="_angleRotation"
+                                            Axis="1 0 0" Angle="0" />
+                                    </RotateTransform3D.Rotation>
+                                </RotateTransform3D>
+                            </Transform3DGroup>
+                        </Model3DGroup.Transform>
+                    </Model3DGroup>
+                </ModelVisual3D.Content>
+            </ModelVisual3D>
+        </Viewport3D>
     </Grid>
 </Window>
