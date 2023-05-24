@@ -69,6 +69,12 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Models\LineEntity.cs" />
+    <Compile Include="Models\NodeEntity.cs" />
+    <Compile Include="Models\Vertex.cs" />
+    <Compile Include="Models\PowerEntity.cs" />
+    <Compile Include="Models\SubstationEntity.cs" />
+    <Compile Include="Models\SwitchEntity.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -98,6 +104,11 @@
     <Resource Include="Images\map.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Geographic.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
