@@ -11,6 +11,7 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Media.Media3D;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Xml;
@@ -33,6 +34,16 @@ namespace RG_PZ2
         private List<SwitchEntity> _switchEntities;
         private List<LineEntity> _lineEntities;
 
+        // Extremes
+        private readonly double _minLatitude = 45.2325;
+        private readonly double _maxLatitude = 45.277031;
+        private readonly double _minLongitude = 19.793909;
+        private readonly double _maxLongitude = 19.894459;
+
+        // Models
+        private readonly double _cubeDim = 1.5;
+        private Dictionary<Point, List<GeometryModel3D>> _entityModels;
+
         public MainWindow()
         {
             _substationEntities = new List<SubstationEntity>();
@@ -40,9 +51,15 @@ namespace RG_PZ2
             _switchEntities = new List<SwitchEntity>();
             _lineEntities = new List<LineEntity>();
 
+            _entityModels = new Dictionary<Point, List<GeometryModel3D>>();
+
             InitializeComponent();
 
             LoadEntities();
+
+            DrawSubstations();
+            DrawNodes();
+            DrawSwitches();
         }
 
         #region Event Handlers
@@ -94,8 +111,8 @@ namespace RG_PZ2
                 }
                 else
                 {
-                    _translateTransform.OffsetX = _diffOffset.X + (translateX / (100 * _scaleTransform.ScaleX));
-                    _translateTransform.OffsetY = _diffOffset.Y + (translateY / (100 * _scaleTransform.ScaleY));
+                    _translateTransform.OffsetX = _diffOffset.X + (translateX * 80 / (100 * _scaleTransform.ScaleX));
+                    _translateTransform.OffsetY = _diffOffset.Y + (translateY * 80 / (100 * _scaleTransform.ScaleY));
                 }
             }
         }
@@ -104,15 +121,17 @@ namespace RG_PZ2
         {
             e.MouseDevice.GetPosition(this);
 
-            double scaleX, scaleY;
+            double scaleX, scaleY, scaleZ;
 
             if (e.Delta > 0 && _zoomCurrent < _zoomMax)
             {
                 scaleX = _scaleTransform.ScaleX + 0.1;
                 scaleY = _scaleTransform.ScaleY + 0.1;
+                scaleZ = _scaleTransform.ScaleZ + 0.1;
 
                 _scaleTransform.ScaleX = scaleX;
                 _scaleTransform.ScaleY = scaleY;
+                _scaleTransform.ScaleZ = scaleZ;
 
                 _zoomCurrent++;
             }
@@ -120,9 +139,11 @@ namespace RG_PZ2
             {
                 scaleX = _scaleTransform.ScaleX - 0.1;
                 scaleY = _scaleTransform.ScaleY - 0.1;
+                scaleZ = _scaleTransform.ScaleZ - 0.1;
 
                 _scaleTransform.ScaleX = scaleX;
                 _scaleTransform.ScaleY = scaleY;
+                _scaleTransform.ScaleZ = scaleZ;
 
                 _zoomCurrent--;
             }
@@ -166,9 +187,9 @@ namespace RG_PZ2
                     Y = double.Parse(xmlNode.SelectSingleNode("Y").InnerText, System.Globalization.CultureInfo.InvariantCulture)
                 };
 
-                ToLatLon(substationEntity.X, substationEntity.Y, 34, out double newX, out double newY);
-                substationEntity.X = newX;
-                substationEntity.Y = newY;
+                ToLatLon(substationEntity.X, substationEntity.Y, 34, out double latitude, out double longitude);
+                substationEntity.X = longitude;
+                substationEntity.Y = latitude;
 
                 _substationEntities.Add(substationEntity);
             }
@@ -186,9 +207,9 @@ namespace RG_PZ2
                     Y = double.Parse(xmlNode.SelectSingleNode("Y").InnerText, System.Globalization.CultureInfo.InvariantCulture)
                 };
 
-                ToLatLon(nodeEntity.X, nodeEntity.Y, 34, out double newX, out double newY);
-                nodeEntity.X = newX;
-                nodeEntity.Y = newY;
+                ToLatLon(nodeEntity.X, nodeEntity.Y, 34, out double latitude, out double longitude);
+                nodeEntity.X = longitude;
+                nodeEntity.Y = latitude;
 
                 _nodeEntities.Add(nodeEntity);
             }
@@ -207,9 +228,9 @@ namespace RG_PZ2
                     Status = xmlNode.SelectSingleNode("Status").InnerText
                 };
 
-                ToLatLon(switchEntity.X, switchEntity.Y, 34, out double newX, out double newY);
-                switchEntity.X = newX;
-                switchEntity.Y = newY;
+                ToLatLon(switchEntity.X, switchEntity.Y, 34, out double latitude, out double longitude);
+                switchEntity.X = longitude;
+                switchEntity.Y = latitude;
 
                 _switchEntities.Add(switchEntity);
             }
@@ -241,9 +262,9 @@ namespace RG_PZ2
                         Y = double.Parse(pointNode.SelectSingleNode("Y").InnerText, System.Globalization.CultureInfo.InvariantCulture)
                     };
 
-                    ToLatLon(vertex.X, vertex.Y, 34, out double newX, out double newY);
-                    vertex.X = newX;
-                    vertex.Y = newY;
+                    ToLatLon(vertex.X, vertex.Y, 34, out double latitude, out double longitude);
+                    vertex.X = longitude;
+                    vertex.Y = latitude;
 
                     vertices.Add(vertex);
                 }
@@ -253,6 +274,173 @@ namespace RG_PZ2
 
                 vertices.Clear();
             }
+        }
+
+        private void DrawSubstations()
+        {
+            foreach (SubstationEntity entity in _substationEntities)
+            {
+                if (IsOnMap(latitude: entity.Y, longitude: entity.X))
+                {
+                    DrawEntity(entity);
+                }
+            }
+        }
+
+        private void DrawNodes()
+        {
+            foreach (NodeEntity entity in _nodeEntities)
+            {
+                if (IsOnMap(latitude: entity.Y, longitude: entity.X))
+                {
+                    DrawEntity(entity);
+                }
+            }
+        }
+
+        private void DrawSwitches()
+        {
+            foreach (SwitchEntity entity in _switchEntities)
+            {
+                if (IsOnMap(latitude: entity.Y, longitude: entity.X))
+                {
+                    DrawEntity(entity);
+                }
+            }
+        }
+
+        private void DrawEntity(PowerEntity entity)
+        {
+            double mapX = Math.Round((entity.X - _minLongitude) / (_maxLongitude - _minLongitude) * 235 - 117.5);
+            double mapY = Math.Round((entity.Y - _minLatitude) / (_maxLatitude - _minLatitude) * 155 - 77.5);
+
+            Point point = new Point(mapX, mapY);
+
+            if (!_entityModels.ContainsKey(point))
+            {
+                _entityModels.Add(point, new List<GeometryModel3D>());
+            }
+
+            MeshGeometry3D mesh = CreateCubeMesh(point);
+
+            DiffuseMaterial material = new DiffuseMaterial();
+
+            switch (entity.GetType().Name)
+            {
+                case "SubstationEntity":
+                    material.Brush = Brushes.Red;
+                    break;
+                case "NodeEntity":
+                    material.Brush = Brushes.Green;
+                    break;
+                case "SwitchEntity":
+                    material.Brush = Brushes.Blue;
+                    break;
+                default:
+                    break;
+            }
+
+            GeometryModel3D model = new GeometryModel3D(mesh, material);
+
+            _modelGroup.Children.Add(model);
+
+            _entityModels[point].Add(model);
+        }
+
+        private MeshGeometry3D CreateCubeMesh(Point point)
+        {
+            MeshGeometry3D cubeMesh = new MeshGeometry3D();
+
+            double bottomZ = _entityModels[point].Count * _cubeDim;
+            double topZ = bottomZ + _cubeDim;
+
+            Point3DCollection points = new Point3DCollection()
+            {
+                new Point3D(point.X, point.Y, bottomZ),
+                new Point3D(point.X + _cubeDim, point.Y, bottomZ),
+                new Point3D(point.X, point.Y, topZ),
+                new Point3D(point.X + _cubeDim, point.Y, topZ),
+
+                new Point3D(point.X, point.Y + _cubeDim, bottomZ),
+                new Point3D(point.X + _cubeDim, point.Y + _cubeDim, bottomZ),
+                new Point3D(point.X, point.Y + _cubeDim, topZ),
+                new Point3D(point.X + _cubeDim, point.Y + _cubeDim, topZ)
+            };
+
+            cubeMesh.Positions = new Point3DCollection(points);
+
+            // Bottom
+            cubeMesh.TriangleIndices.Add(0);
+            cubeMesh.TriangleIndices.Add(1);
+            cubeMesh.TriangleIndices.Add(4);
+            cubeMesh.TriangleIndices.Add(4);
+            cubeMesh.TriangleIndices.Add(1);
+            cubeMesh.TriangleIndices.Add(5);
+
+            // Front
+            cubeMesh.TriangleIndices.Add(3);
+            cubeMesh.TriangleIndices.Add(2);
+            cubeMesh.TriangleIndices.Add(0);
+            cubeMesh.TriangleIndices.Add(0);
+            cubeMesh.TriangleIndices.Add(1);
+            cubeMesh.TriangleIndices.Add(3);
+
+            // Back
+            cubeMesh.TriangleIndices.Add(4);
+            cubeMesh.TriangleIndices.Add(6);
+            cubeMesh.TriangleIndices.Add(7);
+            cubeMesh.TriangleIndices.Add(7);
+            cubeMesh.TriangleIndices.Add(5);
+            cubeMesh.TriangleIndices.Add(4);
+
+            // Left
+            cubeMesh.TriangleIndices.Add(0);
+            cubeMesh.TriangleIndices.Add(2);
+            cubeMesh.TriangleIndices.Add(6);
+            cubeMesh.TriangleIndices.Add(6);
+            cubeMesh.TriangleIndices.Add(4);
+            cubeMesh.TriangleIndices.Add(0);
+
+            // Right
+            cubeMesh.TriangleIndices.Add(7);
+            cubeMesh.TriangleIndices.Add(3);
+            cubeMesh.TriangleIndices.Add(1);
+            cubeMesh.TriangleIndices.Add(1);
+            cubeMesh.TriangleIndices.Add(5);
+            cubeMesh.TriangleIndices.Add(7);
+
+            // Top
+            cubeMesh.TriangleIndices.Add(6);
+            cubeMesh.TriangleIndices.Add(2);
+            cubeMesh.TriangleIndices.Add(3);
+            cubeMesh.TriangleIndices.Add(3);
+            cubeMesh.TriangleIndices.Add(7);
+            cubeMesh.TriangleIndices.Add(6);
+
+            // Bottom
+            cubeMesh.TriangleIndices.Add(0);
+            cubeMesh.TriangleIndices.Add(4);
+            cubeMesh.TriangleIndices.Add(1);
+            cubeMesh.TriangleIndices.Add(1);
+            cubeMesh.TriangleIndices.Add(4);
+            cubeMesh.TriangleIndices.Add(5);
+
+            return cubeMesh;
+        }
+
+        private bool IsOnMap(double latitude, double longitude)
+        {
+            if (latitude < _minLatitude || latitude > _maxLatitude)
+            {
+                return false;
+            }
+
+            if (longitude < _minLongitude || longitude > _maxLongitude)
+            {
+                return false;
+            }
+
+            return true;
         }
 
         private void ToLatLon(double utmX, double utmY, int zoneUTM, out double latitude, out double longitude)

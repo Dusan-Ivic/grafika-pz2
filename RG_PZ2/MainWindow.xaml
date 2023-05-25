@@ -36,7 +36,7 @@
             MouseMove="mainViewport_MouseMove"
             MouseWheel="mainViewport_MouseWheel">
             <Viewport3D.Camera>
-                <PerspectiveCamera Position="0,0,2" LookDirection="0,0,-2" />
+                <PerspectiveCamera Position="0,0,200" LookDirection="0,0,-2" />
             </Viewport3D.Camera>
             <ModelVisual3D>
                 <ModelVisual3D.Content>
@@ -49,7 +49,7 @@
                         <GeometryModel3D>
                             <GeometryModel3D.Geometry>
                                 <MeshGeometry3D
-                                    Positions="-1.5,-1,0 1.5,-1,0 1.5,1,0 -1.5,1,0"
+                                    Positions="-117.5,-77.5,0 117.5,-77.5,0 117.5,77.5,0 -117.5,77.5,0"
                                     TextureCoordinates="0,1 1,1 1,0 0,0"
                                     TriangleIndices="0 1 2 0 2 3" />
                             </GeometryModel3D.Geometry>
