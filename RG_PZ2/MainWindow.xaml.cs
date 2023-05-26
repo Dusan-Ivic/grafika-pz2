@@ -356,15 +356,15 @@ namespace RG_PZ2
 
             Point3DCollection points = new Point3DCollection()
             {
-                new Point3D(point.X, point.Y, bottomZ),
-                new Point3D(point.X + _cubeDim, point.Y, bottomZ),
-                new Point3D(point.X, point.Y, topZ),
-                new Point3D(point.X + _cubeDim, point.Y, topZ),
+                new Point3D(point.X - _cubeDim / 2, point.Y - _cubeDim / 2, bottomZ),
+                new Point3D(point.X + _cubeDim / 2, point.Y - _cubeDim / 2, bottomZ),
+                new Point3D(point.X - _cubeDim / 2, point.Y - _cubeDim / 2, topZ),
+                new Point3D(point.X + _cubeDim / 2, point.Y - _cubeDim / 2, topZ),
 
-                new Point3D(point.X, point.Y + _cubeDim, bottomZ),
-                new Point3D(point.X + _cubeDim, point.Y + _cubeDim, bottomZ),
-                new Point3D(point.X, point.Y + _cubeDim, topZ),
-                new Point3D(point.X + _cubeDim, point.Y + _cubeDim, topZ)
+                new Point3D(point.X - _cubeDim / 2, point.Y + _cubeDim / 2, bottomZ),
+                new Point3D(point.X + _cubeDim / 2, point.Y + _cubeDim / 2, bottomZ),
+                new Point3D(point.X - _cubeDim / 2, point.Y + _cubeDim / 2, topZ),
+                new Point3D(point.X + _cubeDim / 2, point.Y + _cubeDim / 2, topZ)
             };
 
             cubeMesh.Positions = new Point3DCollection(points);
