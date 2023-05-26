@@ -29,6 +29,7 @@ namespace RG_PZ2
         private int _zoomCurrent = 1;
         private int _zoomMax = 7;
 
+        private List<PowerEntity> _powerEntities;
         private List<SubstationEntity> _substationEntities;
         private List<NodeEntity> _nodeEntities;
         private List<SwitchEntity> _switchEntities;
@@ -42,16 +43,20 @@ namespace RG_PZ2
 
         // Models
         private readonly double _cubeDim = 1.5;
+        private readonly double _lineDim = 1.0;
         private Dictionary<Point, List<GeometryModel3D>> _entityModels;
+        private List<Model3DGroup> _lineModels;
 
         public MainWindow()
         {
+            _powerEntities = new List<PowerEntity>();
             _substationEntities = new List<SubstationEntity>();
             _nodeEntities = new List<NodeEntity>();
             _switchEntities = new List<SwitchEntity>();
             _lineEntities = new List<LineEntity>();
 
             _entityModels = new Dictionary<Point, List<GeometryModel3D>>();
+            _lineModels = new List<Model3DGroup>();
 
             InitializeComponent();
 
@@ -60,6 +65,8 @@ namespace RG_PZ2
             DrawSubstations();
             DrawNodes();
             DrawSwitches();
+
+            DrawLines();
         }
 
         #region Event Handlers
@@ -192,6 +199,7 @@ namespace RG_PZ2
                 substationEntity.Y = latitude;
 
                 _substationEntities.Add(substationEntity);
+                _powerEntities.Add(substationEntity);
             }
 
             // Nodes
@@ -212,6 +220,7 @@ namespace RG_PZ2
                 nodeEntity.Y = latitude;
 
                 _nodeEntities.Add(nodeEntity);
+                _powerEntities.Add(nodeEntity);
             }
 
             // Switches
@@ -233,6 +242,7 @@ namespace RG_PZ2
                 switchEntity.Y = latitude;
 
                 _switchEntities.Add(switchEntity);
+                _powerEntities.Add(switchEntity);
             }
 
             // Lines
@@ -347,6 +357,91 @@ namespace RG_PZ2
             _entityModels[point].Add(model);
         }
 
+        private void DrawLines()
+        {
+            foreach (LineEntity line in _lineEntities)
+            {
+                PowerEntity firstEnd = _powerEntities.Find(e => e.Id == line.FirstEnd);
+                PowerEntity secondEnd = _powerEntities.Find(e => e.Id == line.SecondEnd);
+
+                // Ignore lines between entities that don't exist
+                if (firstEnd == null || secondEnd == null)
+                {
+                    continue;
+                }
+                
+                // Ignore lines between entities not on the map
+                if (!IsOnMap(firstEnd.Y, firstEnd.X) || !IsOnMap(secondEnd.Y, secondEnd.X))
+                {
+                    continue;
+                }
+
+                DrawLine(line, firstEnd, secondEnd);
+            }
+        }
+
+        private void DrawLine(LineEntity line, PowerEntity firstEnd, PowerEntity secondEnd)
+        {
+            DiffuseMaterial material = new DiffuseMaterial();
+
+            switch (line.ConductorMaterial)
+            {
+                case "Steel":
+                    material.Brush = Brushes.DarkSlateGray;
+                    break;
+                case "Acsr":
+                    material.Brush = Brushes.LightSlateGray;
+                    break;
+                case "Copper":
+                    material.Brush = Brushes.Brown;
+                    break;
+                default:
+                    break;
+            }
+
+            Point startPoint = new Point()
+            {
+                X = Math.Round((firstEnd.X - _minLongitude) / (_maxLongitude - _minLongitude) * 235 - 117.5),
+                Y = Math.Round((firstEnd.Y - _minLatitude) / (_maxLatitude - _minLatitude) * 155 - 77.5)
+            };
+
+            Point endPoint = new Point()
+            {
+                X = Math.Round((secondEnd.X - _minLongitude) / (_maxLongitude - _minLongitude) * 235 - 117.5),
+                Y = Math.Round((secondEnd.Y - _minLatitude) / (_maxLatitude - _minLatitude) * 155 - 77.5)
+            };
+
+            Model3DGroup lineGroup = new Model3DGroup();
+
+            for (int i = 0; i < line.Vertices.Count; i++)
+            {
+                Vertex vertex = line.Vertices[i];
+
+                double mapX = Math.Round((vertex.X - _minLongitude) / (_maxLongitude - _minLongitude) * 235 - 117.5);
+                double mapY = Math.Round((vertex.Y - _minLatitude) / (_maxLatitude - _minLatitude) * 155 - 77.5);
+
+                Point currentEndPoint = new Point(mapX, mapY);
+
+                MeshGeometry3D mesh;
+
+                if (i < line.Vertices.Count - 1)
+                {
+                    mesh = CreateLineMesh(startPoint, currentEndPoint);
+                    startPoint = new Point(currentEndPoint.X, currentEndPoint.Y);
+                }
+                else
+                {
+                    mesh = CreateLineMesh(startPoint, endPoint);
+                }
+
+                GeometryModel3D model = new GeometryModel3D(mesh, material);
+                lineGroup.Children.Add(model);
+            }
+
+            _modelGroup.Children.Add(lineGroup);
+            _lineModels.Add(lineGroup);
+        }
+
         private MeshGeometry3D CreateCubeMesh(Point point)
         {
             MeshGeometry3D cubeMesh = new MeshGeometry3D();
@@ -426,6 +521,79 @@ namespace RG_PZ2
             cubeMesh.TriangleIndices.Add(5);
 
             return cubeMesh;
+        }
+
+        private MeshGeometry3D CreateLineMesh(Point firstPoint, Point secondPoint)
+        {
+            MeshGeometry3D lineMesh = new MeshGeometry3D();
+
+            double bottomZ = 0.01;
+            double topZ = bottomZ + _lineDim;
+
+            Point3DCollection points = new Point3DCollection()
+            {
+                new Point3D(firstPoint.X - _lineDim / 2, firstPoint.Y - _lineDim / 2, bottomZ),
+                new Point3D(firstPoint.X + _lineDim / 2, firstPoint.Y + _lineDim / 2, bottomZ),
+                new Point3D(firstPoint.X - _lineDim / 2, firstPoint.Y - _lineDim / 2, topZ),
+                new Point3D(firstPoint.X + _lineDim / 2, firstPoint.Y + _lineDim / 2, topZ),
+
+                new Point3D(secondPoint.X - _lineDim / 2, secondPoint.Y - _lineDim / 2, bottomZ),
+                new Point3D(secondPoint.X + _lineDim / 2, secondPoint.Y + _lineDim / 2, bottomZ),
+                new Point3D(secondPoint.X - _lineDim / 2, secondPoint.Y - _lineDim / 2, topZ),
+                new Point3D(secondPoint.X + _lineDim / 2, secondPoint.Y + _lineDim / 2, topZ)
+            };
+
+            lineMesh.Positions = new Point3DCollection(points);
+
+            // Front
+            lineMesh.TriangleIndices.Add(3);
+            lineMesh.TriangleIndices.Add(2);
+            lineMesh.TriangleIndices.Add(0);
+            lineMesh.TriangleIndices.Add(0);
+            lineMesh.TriangleIndices.Add(1);
+            lineMesh.TriangleIndices.Add(3);
+
+            // Back
+            lineMesh.TriangleIndices.Add(4);
+            lineMesh.TriangleIndices.Add(6);
+            lineMesh.TriangleIndices.Add(7);
+            lineMesh.TriangleIndices.Add(7);
+            lineMesh.TriangleIndices.Add(5);
+            lineMesh.TriangleIndices.Add(4);
+
+            // Left
+            lineMesh.TriangleIndices.Add(2);
+            lineMesh.TriangleIndices.Add(6);
+            lineMesh.TriangleIndices.Add(4);
+            lineMesh.TriangleIndices.Add(4);
+            lineMesh.TriangleIndices.Add(0);
+            lineMesh.TriangleIndices.Add(2);
+
+            // Right
+            lineMesh.TriangleIndices.Add(5);
+            lineMesh.TriangleIndices.Add(7);
+            lineMesh.TriangleIndices.Add(3);
+            lineMesh.TriangleIndices.Add(3);
+            lineMesh.TriangleIndices.Add(1);
+            lineMesh.TriangleIndices.Add(5);
+
+            // Top
+            lineMesh.TriangleIndices.Add(7);
+            lineMesh.TriangleIndices.Add(6);
+            lineMesh.TriangleIndices.Add(2);
+            lineMesh.TriangleIndices.Add(2);
+            lineMesh.TriangleIndices.Add(3);
+            lineMesh.TriangleIndices.Add(7);
+
+            // Bottom
+            lineMesh.TriangleIndices.Add(1);
+            lineMesh.TriangleIndices.Add(0);
+            lineMesh.TriangleIndices.Add(4);
+            lineMesh.TriangleIndices.Add(4);
+            lineMesh.TriangleIndices.Add(5);
+            lineMesh.TriangleIndices.Add(1);
+
+            return lineMesh;
         }
 
         private bool IsOnMap(double latitude, double longitude)
