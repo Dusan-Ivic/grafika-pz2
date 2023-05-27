@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
@@ -44,8 +45,15 @@ namespace RG_PZ2
         // Models
         private readonly double _cubeDim = 1.5;
         private readonly double _lineDim = 1.0;
-        private Dictionary<Point, List<GeometryModel3D>> _entityModels;
-        private List<Model3DGroup> _lineModels;
+        private Dictionary<Point, List<GeometryModel3D>> _entityModelsMap;
+        private List<GeometryModel3D> _entityModelsList;
+        private List<Model3DGroup> _lineModelsList;
+
+        // Hit Testing
+        private ToolTip _tooltip = new ToolTip() { IsOpen = false };
+        private GeometryModel3D _lineSegmentModel;
+        private GeometryModel3D _firstEndModel;
+        private GeometryModel3D _secondEndModel;
 
         public MainWindow()
         {
@@ -55,8 +63,9 @@ namespace RG_PZ2
             _switchEntities = new List<SwitchEntity>();
             _lineEntities = new List<LineEntity>();
 
-            _entityModels = new Dictionary<Point, List<GeometryModel3D>>();
-            _lineModels = new List<Model3DGroup>();
+            _entityModelsMap = new Dictionary<Point, List<GeometryModel3D>>();
+            _entityModelsList = new List<GeometryModel3D>();
+            _lineModelsList = new List<Model3DGroup>();
 
             InitializeComponent();
 
@@ -67,6 +76,9 @@ namespace RG_PZ2
             DrawSwitches();
 
             DrawLines();
+
+            ToolTipService.SetPlacement(_mainViewport, PlacementMode.Mouse);
+            ToolTipService.SetToolTip(_mainViewport, _tooltip);
         }
 
         #region Event Handlers
@@ -80,6 +92,9 @@ namespace RG_PZ2
                 _startPoint = e.GetPosition(this);
                 _diffOffset.X = _translateTransform.OffsetX;
                 _diffOffset.Y = _translateTransform.OffsetY;
+
+                PointHitTestParameters hitTestParams = new PointHitTestParameters(_startPoint);
+                VisualTreeHelper.HitTest(this, null, HTResult, hitTestParams);
             }
             else if (e.ChangedButton == MouseButton.Middle && e.ButtonState == MouseButtonState.Pressed)
             {
@@ -101,6 +116,8 @@ namespace RG_PZ2
 
         private void mainViewport_MouseMove(object sender, MouseEventArgs e)
         {
+            _tooltip.IsOpen = false;
+
             if (_mainViewport.IsMouseCaptured)
             {
                 Point endPoint = e.GetPosition(this);
@@ -326,9 +343,9 @@ namespace RG_PZ2
 
             Point point = new Point(mapX, mapY);
 
-            if (!_entityModels.ContainsKey(point))
+            if (!_entityModelsMap.ContainsKey(point))
             {
-                _entityModels.Add(point, new List<GeometryModel3D>());
+                _entityModelsMap.Add(point, new List<GeometryModel3D>());
             }
 
             MeshGeometry3D mesh = CreateCubeMesh(point);
@@ -351,10 +368,12 @@ namespace RG_PZ2
             }
 
             GeometryModel3D model = new GeometryModel3D(mesh, material);
+            model.SetValue(TagProperty, entity);
 
             _modelGroup.Children.Add(model);
 
-            _entityModels[point].Add(model);
+            _entityModelsMap[point].Add(model);
+            _entityModelsList.Add(model);
         }
 
         private void DrawLines()
@@ -435,18 +454,20 @@ namespace RG_PZ2
                 }
 
                 GeometryModel3D model = new GeometryModel3D(mesh, material);
+                model.SetValue(TagProperty, line);
+
                 lineGroup.Children.Add(model);
             }
 
             _modelGroup.Children.Add(lineGroup);
-            _lineModels.Add(lineGroup);
+            _lineModelsList.Add(lineGroup);
         }
 
         private MeshGeometry3D CreateCubeMesh(Point point)
         {
             MeshGeometry3D cubeMesh = new MeshGeometry3D();
 
-            double bottomZ = _entityModels[point].Count * _cubeDim;
+            double bottomZ = _entityModelsMap[point].Count * _cubeDim;
             double topZ = bottomZ + _cubeDim;
 
             Point3DCollection points = new Point3DCollection()
@@ -594,6 +615,105 @@ namespace RG_PZ2
             lineMesh.TriangleIndices.Add(1);
 
             return lineMesh;
+        }
+
+        private HitTestResultBehavior HTResult(HitTestResult rawResult)
+        {
+            RayHitTestResult hitTestResult = rawResult as RayHitTestResult;
+
+            if (hitTestResult != null)
+            {
+                Model3D hitModel = hitTestResult.ModelHit;
+
+                object hitEntity = hitModel.GetValue(TagProperty);
+
+                if (hitEntity is SubstationEntity)
+                {
+                    SubstationEntity hitSubstation = hitEntity as SubstationEntity;
+
+                    _tooltip.Content = $"Substation\n\nID: {hitSubstation.Id}\nName: {hitSubstation.Name}";
+                    _tooltip.IsOpen = true;
+                }
+                else if (hitEntity is NodeEntity)
+                {
+                    NodeEntity hitNode = hitEntity as NodeEntity;
+
+                    _tooltip.Content = $"Node\n\nID: {hitNode.Id}\nName: {hitNode.Name}";
+                    _tooltip.IsOpen = true;
+                }
+                else if (hitEntity is SwitchEntity)
+                {
+                    SwitchEntity hitSwitch = hitEntity as SwitchEntity;
+
+                    _tooltip.Content = $"Switch\n\nID: {hitSwitch.Id}\nName: {hitSwitch.Name}\nStatus: {hitSwitch.Status}";
+                    _tooltip.IsOpen = true;
+                }
+                else if (hitEntity is LineEntity)
+                {
+                    if (hitModel as GeometryModel3D != _lineSegmentModel)
+                    {
+                        ResetLineEndModel(_firstEndModel);
+                        ResetLineEndModel(_secondEndModel);
+                    }
+
+                    LineEntity hitLine = hitEntity as LineEntity;
+
+                    GeometryModel3D firstEndModel = _entityModelsList.Find(x =>
+                    {
+                        PowerEntity tagEntity = x.GetValue(TagProperty) as PowerEntity;
+
+                        if (tagEntity.Id == hitLine.FirstEnd)
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    });
+
+                    GeometryModel3D secondEndModel = _entityModelsList.Find(x =>
+                    {
+                        PowerEntity tagEntity = x.GetValue(TagProperty) as PowerEntity;
+
+                        if (tagEntity.Id == hitLine.SecondEnd)
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    });
+
+                    firstEndModel.Material = new DiffuseMaterial(Brushes.Gold);
+                    secondEndModel.Material = new DiffuseMaterial(Brushes.Gold);
+
+                    _lineSegmentModel = hitModel as GeometryModel3D;
+                    _firstEndModel = firstEndModel;
+                    _secondEndModel = secondEndModel;
+                }
+            }
+
+            return HitTestResultBehavior.Stop;
+        }
+
+        private void ResetLineEndModel(GeometryModel3D lineEnd)
+        {
+            PowerEntity tagEntity = _firstEndModel?.GetValue(TagProperty) as PowerEntity;
+
+            if (tagEntity == null)
+            {
+                return;
+            }
+            else if (tagEntity is SubstationEntity)
+            {
+                lineEnd.Material = new DiffuseMaterial(Brushes.Red);
+            }
+            else if (tagEntity is NodeEntity)
+            {
+                lineEnd.Material = new DiffuseMaterial(Brushes.Green);
+            }
+            else if (tagEntity is SwitchEntity)
+            {
+                lineEnd.Material = new DiffuseMaterial(Brushes.Blue);
+            }
         }
 
         private bool IsOnMap(double latitude, double longitude)
