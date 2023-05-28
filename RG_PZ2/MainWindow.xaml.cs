@@ -48,6 +48,7 @@ namespace RG_PZ2
         private Dictionary<Point, List<GeometryModel3D>> _entityModelsMap;
         private List<GeometryModel3D> _entityModelsList;
         private List<Model3DGroup> _lineModelsList;
+        private List<Model3DGroup> _hiddenLines;
 
         // Hit Testing
         private ToolTip _tooltip = new ToolTip() { IsOpen = false };
@@ -66,6 +67,7 @@ namespace RG_PZ2
             _entityModelsMap = new Dictionary<Point, List<GeometryModel3D>>();
             _entityModelsList = new List<GeometryModel3D>();
             _lineModelsList = new List<Model3DGroup>();
+            _hiddenLines = new List<Model3DGroup>();
 
             InitializeComponent();
 
@@ -80,8 +82,6 @@ namespace RG_PZ2
             ToolTipService.SetPlacement(_mainViewport, PlacementMode.Mouse);
             ToolTipService.SetToolTip(_mainViewport, _tooltip);
         }
-
-        #region Event Handlers
 
         private void mainViewport_MouseDown(object sender, MouseButtonEventArgs e)
         {
@@ -191,7 +191,39 @@ namespace RG_PZ2
             _angleRotation.Angle = 1;
         }
 
-        #endregion Event Handlers
+        private void cbHideInactiveLines_Click(object sender, RoutedEventArgs e)
+        {
+            CheckBox cb = sender as CheckBox;
+            bool isChecked = cb.IsChecked ?? false;
+
+            if (isChecked)
+            {
+                foreach (Model3DGroup lineGroup in _lineModelsList)
+                {
+                    LineEntity line = lineGroup.GetValue(TagProperty) as LineEntity;
+
+                    SwitchEntity firstEnd = _switchEntities.Find(x => x.Id == line.FirstEnd);
+
+                    if (firstEnd != null)
+                    {
+                        if (firstEnd.Status == "Open")
+                        {
+                            _modelGroup.Children.Remove(lineGroup);
+                            _hiddenLines.Add(lineGroup);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                foreach (Model3DGroup lineGroup in _hiddenLines)
+                {
+                    _modelGroup.Children.Add(lineGroup);
+                }
+
+                _hiddenLines.Clear();
+            }
+        }
 
         private void LoadEntities()
         {
@@ -459,6 +491,7 @@ namespace RG_PZ2
                 lineGroup.Children.Add(model);
             }
 
+            lineGroup.SetValue(TagProperty, line);
             _modelGroup.Children.Add(lineGroup);
             _lineModelsList.Add(lineGroup);
         }
@@ -771,5 +804,7 @@ namespace RG_PZ2
             longitude = ((delt * (180.0 / Math.PI)) + s) + diflon;
             latitude = ((lat + (1 + e2cuadrada * Math.Pow(Math.Cos(lat), 2) - (3.0 / 2.0) * e2cuadrada * Math.Sin(lat) * Math.Cos(lat) * (tao - lat)) * (tao - lat)) * (180.0 / Math.PI)) + diflat;
         }
+
+        
     }
 }
