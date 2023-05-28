@@ -225,6 +225,49 @@ namespace RG_PZ2
             }
         }
 
+        private void cbColorSwitchesStatus_Click(object sender, RoutedEventArgs e)
+        {
+            CheckBox cb = sender as CheckBox;
+            bool isChecked = cb.IsChecked ?? false;
+
+            if (isChecked)
+            {
+                foreach (GeometryModel3D model in _entityModelsList)
+                {
+                    object entity = model.GetValue(TagProperty);
+
+                    if (entity is SwitchEntity)
+                    {
+                        SwitchEntity switchEntity = entity as SwitchEntity;
+
+                        switch (switchEntity.Status)
+                        {
+                            case "Open":
+                                model.Material = new DiffuseMaterial(Brushes.Green);
+                                break;
+                            case "Closed":
+                                model.Material = new DiffuseMaterial(Brushes.Red);
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                foreach (GeometryModel3D model in _entityModelsList)
+                {
+                    object entity = model.GetValue(TagProperty);
+
+                    if (entity is SwitchEntity)
+                    {
+                        model.Material = new DiffuseMaterial(Brushes.Blue);
+                    }
+                }
+            }
+        }
+
         private void LoadEntities()
         {
             XmlDocument xmlDocument = new XmlDocument();
@@ -804,7 +847,5 @@ namespace RG_PZ2
             longitude = ((delt * (180.0 / Math.PI)) + s) + diflon;
             latitude = ((lat + (1 + e2cuadrada * Math.Pow(Math.Cos(lat), 2) - (3.0 / 2.0) * e2cuadrada * Math.Sin(lat) * Math.Cos(lat) * (tao - lat)) * (tao - lat)) * (180.0 / Math.PI)) + diflat;
         }
-
-        
     }
 }

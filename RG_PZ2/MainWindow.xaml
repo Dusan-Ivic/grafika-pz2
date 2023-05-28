@@ -38,6 +38,19 @@
                     Click="cbHideInactiveLines_Click" />
             </StackPanel>
 
+            <StackPanel
+                Orientation="Horizontal"
+                VerticalAlignment="Center"
+                Margin="10,0,0,0"
+                Background="LightGray">
+                <Label Content="Color Switches by Status" />
+                <CheckBox
+                    x:Name="_cbColorSwitchesStatus"
+                    VerticalContentAlignment="Center"
+                    Margin="0,1,0,0"
+                    Click="cbColorSwitchesStatus_Click" />
+            </StackPanel>
+
         </StackPanel>
 
         <Viewport3D
