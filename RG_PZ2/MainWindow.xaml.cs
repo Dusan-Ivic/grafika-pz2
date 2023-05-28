@@ -268,6 +268,69 @@ namespace RG_PZ2
             }
         }
 
+        private void cbColorLinesResistance_Click(object sender, RoutedEventArgs e)
+        {
+            CheckBox cb = sender as CheckBox;
+            bool isChecked = cb.IsChecked ?? false;
+
+            if (isChecked)
+            {
+                foreach (Model3DGroup lineGroup in _lineModelsList)
+                {
+                    LineEntity lineEntity = lineGroup.GetValue(TagProperty) as LineEntity;
+
+                    DiffuseMaterial material = new DiffuseMaterial();
+
+                    if (lineEntity.R < 1)
+                    {
+                        material.Brush = Brushes.Red;
+                    }
+                    else if (lineEntity.R > 2)
+                    {
+                        material.Brush = Brushes.Yellow;
+                    }
+                    else
+                    {
+                        material.Brush = Brushes.Orange;
+                    }
+
+                    foreach (GeometryModel3D lineSegment in lineGroup.Children)
+                    {
+                        lineSegment.Material = material;
+                    }
+                }
+            }
+            else
+            {
+                foreach (Model3DGroup lineGroup in _lineModelsList)
+                {
+                    LineEntity lineEntity = lineGroup.GetValue(TagProperty) as LineEntity;
+
+                    DiffuseMaterial material = new DiffuseMaterial();
+
+                    switch (lineEntity.ConductorMaterial)
+                    {
+                        case "Steel":
+                            material.Brush = Brushes.DarkSlateGray;
+                            break;
+                        case "Acsr":
+                            material.Brush = Brushes.LightSlateGray;
+                            break;
+                        case "Copper":
+                            material.Brush = Brushes.Brown;
+                            break;
+                        default:
+                            break;
+                    }
+
+                    foreach (GeometryModel3D lineSegment in lineGroup.Children)
+                    {
+                        lineSegment.Material = material;
+                    }
+                }
+            }
+        }
+
         private void LoadEntities()
         {
             XmlDocument xmlDocument = new XmlDocument();
