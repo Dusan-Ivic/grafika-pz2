@@ -476,10 +476,7 @@ namespace RG_PZ2
 
         private void DrawEntity(PowerEntity entity)
         {
-            double mapX = Math.Round((entity.X - _minLongitude) / (_maxLongitude - _minLongitude) * 235 - 117.5);
-            double mapY = Math.Round((entity.Y - _minLatitude) / (_maxLatitude - _minLatitude) * 155 - 77.5);
-
-            Point point = new Point(mapX, mapY);
+            Point point = CreatePoint(entity.X, entity.Y);
 
             if (!_entityModelsMap.ContainsKey(point))
             {
@@ -556,17 +553,8 @@ namespace RG_PZ2
                     break;
             }
 
-            Point startPoint = new Point()
-            {
-                X = Math.Round((firstEnd.X - _minLongitude) / (_maxLongitude - _minLongitude) * 235 - 117.5),
-                Y = Math.Round((firstEnd.Y - _minLatitude) / (_maxLatitude - _minLatitude) * 155 - 77.5)
-            };
-
-            Point endPoint = new Point()
-            {
-                X = Math.Round((secondEnd.X - _minLongitude) / (_maxLongitude - _minLongitude) * 235 - 117.5),
-                Y = Math.Round((secondEnd.Y - _minLatitude) / (_maxLatitude - _minLatitude) * 155 - 77.5)
-            };
+            Point startPoint = CreatePoint(firstEnd.X, firstEnd.Y);
+            Point endPoint = CreatePoint(secondEnd.X, secondEnd.Y);
 
             Model3DGroup lineGroup = new Model3DGroup();
 
@@ -574,10 +562,7 @@ namespace RG_PZ2
             {
                 Vertex vertex = line.Vertices[i];
 
-                double mapX = Math.Round((vertex.X - _minLongitude) / (_maxLongitude - _minLongitude) * 235 - 117.5);
-                double mapY = Math.Round((vertex.Y - _minLatitude) / (_maxLatitude - _minLatitude) * 155 - 77.5);
-
-                Point currentEndPoint = new Point(mapX, mapY);
+                Point currentEndPoint = CreatePoint(vertex.X, vertex.Y);
 
                 MeshGeometry3D mesh;
 
@@ -853,6 +838,23 @@ namespace RG_PZ2
             {
                 lineEnd.Material = new DiffuseMaterial(Brushes.Blue);
             }
+        }
+
+        private Point CreatePoint(double entityX, double entityY)
+        {
+            double pointX = Math.Round((entityX - _minLongitude) / (_maxLongitude - _minLongitude) * 235 - 117.5);
+            double pointY = Math.Round((entityY - _minLatitude) / (_maxLatitude - _minLatitude) * 155 - 77.5);
+
+            return new Point(pointX, pointY)
+            {
+                X = RoundToNearestMultiple(pointX, 1.5),
+                Y = RoundToNearestMultiple(pointY, 1.5)
+            };
+        }
+
+        private double RoundToNearestMultiple(double value, double multiple)
+        {
+            return (double)Math.Round((decimal)value / (decimal)multiple, MidpointRounding.AwayFromZero) * multiple;
         }
 
         private bool IsOnMap(double latitude, double longitude)
