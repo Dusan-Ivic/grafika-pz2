@@ -129,9 +129,19 @@ namespace RG_PZ2
 
                 if (e.MiddleButton == MouseButtonState.Pressed)
                 {
-                    double rotationOffset = offsetY > _prevOffset ? translateY : -translateY;
-                    _angleRotation.Angle = (_angleRotation.Angle + rotationOffset / 10) % 360;
-                    _prevOffset = offsetY;
+                    double rotationOffsetX = endPoint.X - _startPoint.X + _angleRotationX.Angle;
+                    double rotationOffsetY = endPoint.Y - _startPoint.Y + _angleRotationY.Angle;
+
+                    if (-90 <= rotationOffsetX && rotationOffsetX <= 90)
+                    {
+                        _angleRotationX.Angle = rotationOffsetX;
+                    }
+                    if (-90 <= rotationOffsetY && rotationOffsetY <= 90)
+                    {
+                        _angleRotationY.Angle = rotationOffsetY;
+                    }
+
+                    _startPoint = endPoint;
                 }
                 else
                 {
@@ -188,7 +198,8 @@ namespace RG_PZ2
             _scaleTransform.ScaleY = 1;
             _scaleTransform.ScaleZ = 1;
 
-            _angleRotation.Angle = 1;
+            _angleRotationX.Angle = 0;
+            _angleRotationY.Angle = 0;
         }
 
         private void cbHideInactiveLines_Click(object sender, RoutedEventArgs e)

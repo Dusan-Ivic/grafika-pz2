@@ -112,8 +112,15 @@
                                 <RotateTransform3D>
                                     <RotateTransform3D.Rotation>
                                         <AxisAngleRotation3D
-                                            x:Name="_angleRotation"
+                                            x:Name="_angleRotationY"
                                             Axis="1 0 0" Angle="0" />
+                                    </RotateTransform3D.Rotation>
+                                </RotateTransform3D>
+                                <RotateTransform3D>
+                                    <RotateTransform3D.Rotation>
+                                        <AxisAngleRotation3D
+                                            x:Name="_angleRotationX"
+                                            Axis="0 1 0" Angle="0" />
                                     </RotateTransform3D.Rotation>
                                 </RotateTransform3D>
                             </Transform3DGroup>
