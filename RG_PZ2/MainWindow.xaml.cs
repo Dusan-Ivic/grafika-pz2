@@ -43,7 +43,7 @@ namespace RG_PZ2
 
         // Models
         private readonly double _cubeDim = 1.5;
-        private readonly double _lineDim = 1.0;
+        private readonly double _lineDim = 0.5;
         private Dictionary<Point, List<GeometryModel3D>> _entityModelsMap;
         private List<GeometryModel3D> _entityModelsList;
         private List<Model3DGroup> _lineModelsList;
@@ -565,6 +565,32 @@ namespace RG_PZ2
             Point startPoint = CreatePoint(firstEnd.X, firstEnd.Y);
             Point endPoint = CreatePoint(secondEnd.X, secondEnd.Y);
 
+            double firstEndIndex = _entityModelsMap[startPoint].FindIndex(x =>
+            {
+                PowerEntity tagEntity = x.GetValue(TagProperty) as PowerEntity;
+                return tagEntity.Id == line.FirstEnd;
+            });
+
+            double secondEndIndex = _entityModelsMap[endPoint].FindIndex(x =>
+            {
+                PowerEntity tagEntity = x.GetValue(TagProperty) as PowerEntity;
+                return tagEntity.Id == line.SecondEnd;
+            });
+
+            Point3D startPoint3D = new Point3D()
+            {
+                X = startPoint.X,
+                Y = startPoint.Y,
+                Z = line.IsUnderground ? 0 : firstEndIndex * _cubeDim
+            };
+
+            Point3D endPoint3D = new Point3D()
+            {
+                X = endPoint.X,
+                Y = endPoint.Y,
+                Z = line.IsUnderground ? 0 : secondEndIndex * _cubeDim
+            };
+
             Model3DGroup lineGroup = new Model3DGroup();
 
             for (int i = 0; i < line.Vertices.Count; i++)
@@ -572,17 +598,23 @@ namespace RG_PZ2
                 Vertex vertex = line.Vertices[i];
 
                 Point currentEndPoint = CreatePoint(vertex.X, vertex.Y);
+                Point3D currentEndPoint3D = new Point3D(currentEndPoint.X, currentEndPoint.Y, 0);
 
                 MeshGeometry3D mesh;
 
                 if (i < line.Vertices.Count - 1)
                 {
-                    mesh = CreateLineMesh(startPoint, currentEndPoint);
-                    startPoint = new Point(currentEndPoint.X, currentEndPoint.Y);
+                    if (i == 0)
+                    {
+                        currentEndPoint3D.Z = startPoint3D.Z;
+                    }
+
+                    mesh = CreateLineMesh(startPoint3D, currentEndPoint3D);
+                    startPoint3D = new Point3D(currentEndPoint3D.X, currentEndPoint3D.Y, currentEndPoint3D.Z);
                 }
                 else
                 {
-                    mesh = CreateLineMesh(startPoint, endPoint);
+                    mesh = CreateLineMesh(startPoint3D, endPoint3D);
                 }
 
                 GeometryModel3D model = new GeometryModel3D(mesh, material);
@@ -677,24 +709,21 @@ namespace RG_PZ2
             return cubeMesh;
         }
 
-        private MeshGeometry3D CreateLineMesh(Point firstPoint, Point secondPoint)
+        private MeshGeometry3D CreateLineMesh(Point3D firstPoint, Point3D secondPoint)
         {
             MeshGeometry3D lineMesh = new MeshGeometry3D();
 
-            double bottomZ = 0.01;
-            double topZ = bottomZ + _lineDim;
-
             Point3DCollection points = new Point3DCollection()
             {
-                new Point3D(firstPoint.X - _lineDim / 2, firstPoint.Y - _lineDim / 2, bottomZ),
-                new Point3D(firstPoint.X + _lineDim / 2, firstPoint.Y + _lineDim / 2, bottomZ),
-                new Point3D(firstPoint.X - _lineDim / 2, firstPoint.Y - _lineDim / 2, topZ),
-                new Point3D(firstPoint.X + _lineDim / 2, firstPoint.Y + _lineDim / 2, topZ),
+                new Point3D(firstPoint.X - _lineDim / 2, firstPoint.Y - _lineDim / 2, firstPoint.Z + 1.5 * _lineDim),
+                new Point3D(firstPoint.X + _lineDim / 2, firstPoint.Y + _lineDim / 2, firstPoint.Z + 1.5 * _lineDim),
+                new Point3D(firstPoint.X - _lineDim / 2, firstPoint.Y - _lineDim / 2, firstPoint.Z + 3 * _lineDim),
+                new Point3D(firstPoint.X + _lineDim / 2, firstPoint.Y + _lineDim / 2, firstPoint.Z + 3 * _lineDim),
 
-                new Point3D(secondPoint.X - _lineDim / 2, secondPoint.Y - _lineDim / 2, bottomZ),
-                new Point3D(secondPoint.X + _lineDim / 2, secondPoint.Y + _lineDim / 2, bottomZ),
-                new Point3D(secondPoint.X - _lineDim / 2, secondPoint.Y - _lineDim / 2, topZ),
-                new Point3D(secondPoint.X + _lineDim / 2, secondPoint.Y + _lineDim / 2, topZ)
+                new Point3D(secondPoint.X - _lineDim / 2, secondPoint.Y - _lineDim / 2, secondPoint.Z + 1.5 * _lineDim),
+                new Point3D(secondPoint.X + _lineDim / 2, secondPoint.Y + _lineDim / 2, secondPoint.Z + 1.5 * _lineDim),
+                new Point3D(secondPoint.X - _lineDim / 2, secondPoint.Y - _lineDim / 2, secondPoint.Z + 3 * _lineDim),
+                new Point3D(secondPoint.X + _lineDim / 2, secondPoint.Y + _lineDim / 2, secondPoint.Z + 3 * _lineDim)
             };
 
             lineMesh.Positions = new Point3DCollection(points);
