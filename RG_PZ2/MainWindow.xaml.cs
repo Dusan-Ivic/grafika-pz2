@@ -26,7 +26,6 @@ namespace RG_PZ2
     {
         private Point _startPoint = new Point();
         private Point _diffOffset = new Point();
-        private double _prevOffset = 0;
         private int _zoomCurrent = 1;
         private int _zoomMax = 7;
 
@@ -187,7 +186,6 @@ namespace RG_PZ2
         {
             _startPoint = new Point();
             _diffOffset = new Point();
-            _prevOffset = 0;
             _zoomCurrent = 1;
 
             _translateTransform.OffsetX = 0;
@@ -273,7 +271,7 @@ namespace RG_PZ2
 
                     if (entity is SwitchEntity)
                     {
-                        model.Material = new DiffuseMaterial(Brushes.Blue);
+                        model.Material = new DiffuseMaterial(Brushes.DarkSlateBlue);
                     }
                 }
             }
@@ -501,13 +499,13 @@ namespace RG_PZ2
             switch (entity.GetType().Name)
             {
                 case "SubstationEntity":
-                    material.Brush = Brushes.Red;
+                    material.Brush = Brushes.DarkSlateBlue;
                     break;
                 case "NodeEntity":
-                    material.Brush = Brushes.Green;
+                    material.Brush = Brushes.DarkSlateBlue;
                     break;
                 case "SwitchEntity":
-                    material.Brush = Brushes.Blue;
+                    material.Brush = Brushes.DarkSlateBlue;
                     break;
                 default:
                     break;
@@ -839,15 +837,15 @@ namespace RG_PZ2
             }
             else if (tagEntity is SubstationEntity)
             {
-                lineEnd.Material = new DiffuseMaterial(Brushes.Red);
+                lineEnd.Material = new DiffuseMaterial(Brushes.DarkSlateBlue);
             }
             else if (tagEntity is NodeEntity)
             {
-                lineEnd.Material = new DiffuseMaterial(Brushes.Green);
+                lineEnd.Material = new DiffuseMaterial(Brushes.DarkSlateBlue);
             }
             else if (tagEntity is SwitchEntity)
             {
-                lineEnd.Material = new DiffuseMaterial(Brushes.Blue);
+                lineEnd.Material = new DiffuseMaterial(Brushes.DarkSlateBlue);
             }
         }
 
